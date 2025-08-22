@@ -4,6 +4,7 @@ function App() {
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [result, setResult] = useState(null);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
   // Dummy 3D coordinates
   const balloons = [
@@ -13,7 +14,7 @@ function App() {
   ];
 
   async function findClosestBalloon() {
-    const res = await fetch("http://localhost:3000/balloons/closest", {
+    const res = await fetch(`${baseUrl}/balloons/closest`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
