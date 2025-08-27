@@ -1,59 +1,79 @@
 import { useState } from "react";
+import {
+  Container,
+  Typography,
+  Button,
+  Box,
+  Paper,
+  CircularProgress,
+} from "@mui/material";
 
 function App() {
-  const [lat, setLat] = useState("");
-  const [lon, setLon] = useState("");
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-  // Dummy 3D coordinates
-  const balloons = [
-    { lat: 45.2, lon: -75.86, alt: 3.4 },
-    { lat: 27.5, lon: 136.45, alt: 2.4 },
-    { lat: 23.6, lon: -160.1, alt: 5.0 }, // closest to 23.5 / -160.2
-  ];
-
-  async function findClosestBalloon() {
-    const res = await fetch(`${baseUrl}/balloons/closest`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lat: parseFloat(lat),
-        lon: parseFloat(lon),
-        balloons: balloons,
-      }),
-    });
-
-    const data = await res.json();
-    setResult(data.powder_balloon);
-  }
+  const fetchClosestToBuoy = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/closest_to_buoy?station=51101`);
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      console.error("Error fetching closest balloon:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>Powder Balloon Finder</h1>
-      <div style={{ marginBottom: "1rem" }}>
-        <label>
-          NOAA Buoy Latitude:{" "}
-          <input value={lat} onChange={(e) => setLat(e.target.value)} />
-        </label>
-      </div>
-      <div style={{ marginBottom: "1rem" }}>
-        <label>
-          NOAA Buoy Longitude:{" "}
-          <input value={lon} onChange={(e) => setLon(e.target.value)} />
-        </label>
-      </div>
-      <button onClick={findClosestBalloon}>Find Powder Balloon</button>
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Closest Balloon to NOAA Buoy
+        </Typography>
 
-      {result && (
-        <div style={{ marginTop: "2rem" }}>
-          <h2>Closest Balloon:</h2>
-          <p>Lat: {result.lat}</p>
-          <p>Lon: {result.lon}</p>
-          <p>Alt: {result.alt}</p>
-        </div>
-      )}
-    </div>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={fetchClosestToBuoy}
+          fullWidth
+        >
+          Find Closest Balloon to Buoy 51101
+        </Button>
+
+        {loading && (
+          <Box sx={{ mt: 4, textAlign: "center" }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {result && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6">Buoy Coordinates</Typography>
+            <Typography>Latitude: {result.buoy_latitude}</Typography>
+            <Typography>Longitude: {result.buoy_longitude}</Typography>
+            <Typography>Altitude: {result.buoy_altitude_km} km</Typography>
+
+            <Typography variant="h6" sx={{ mt: 3 }}>
+              Closest Balloon
+            </Typography>
+            <Typography>
+              Latitude: {result.closest_balloon_triplet.latitude_deg}
+            </Typography>
+            <Typography>
+              Longitude: {result.closest_balloon_triplet.longitude_deg}
+            </Typography>
+            <Typography>
+              Altitude: {result.closest_balloon_triplet.altitude_km} km
+            </Typography>
+            <Typography sx={{ mt: 2 }}>
+              Distance to buoy: {result.distance_km.toFixed(2)} km
+            </Typography>
+          </Box>
+        )}
+      </Paper>
+    </Container>
   );
 }
 
