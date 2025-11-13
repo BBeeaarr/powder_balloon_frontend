@@ -16,3 +16,16 @@ export type MarkerDef = {
   position: LatLng;
   popup?: React.ReactNode;
 };
+
+// API response for closest balloon to a buoy
+export type ApiResult = {
+  station: string;
+  buoy_latitude: number;
+  buoy_longitude: number;
+  closest_balloon_triplet: {
+    latitude_deg: number;
+    longitude_deg: number;
+    altitude_km: number;
+  };
+  distance_km: number;
+};

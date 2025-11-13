@@ -61,6 +61,7 @@ export default function FullScreenMap({
   fitToMarkersEnabled = true,
   gibs = {},
   children,
+  topOffset = 0,
 }: {
   markers?: MarkerDef[];
   fallbackCenter?: LatLng;
@@ -68,6 +69,7 @@ export default function FullScreenMap({
   fitToMarkersEnabled?: boolean;
   gibs?: GibsOptions;
   children?: React.ReactNode;
+  topOffset?: number; // pixels to offset from top (e.g., AppBar height)
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -192,7 +194,7 @@ export default function FullScreenMap({
   }, [markers, fitToMarkersEnabled]);
 
   return (
-    <div style={{ position: "fixed", inset: 0 }}>
+    <div style={{ position: "fixed", top: topOffset, left: 0, right: 0, bottom: 0 }}>
       <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
       {children}
     </div>

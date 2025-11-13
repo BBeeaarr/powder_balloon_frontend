@@ -1,28 +1,17 @@
 // App.tsx
 import { useState, useMemo } from "react";
-import { Typography, Button, Box, Paper, CircularProgress, Slider } from "@mui/material";
+// Moved controls UI into ControlsOverlay component
 import FullScreenMap from "./FullScreenMap";
-import type { LatLng, MarkerDef } from "./types.ts";
+import type { LatLng, MarkerDef, ApiResult } from "./types.ts";
+import ControlsOverlay from "./ControlsOverlay";
+import NavBar from "./NavBar";
+import { NAVBAR_HEIGHT } from "./theme";
 // import { MarkerItem } from "./MarkersLayer";
 // import PillLabel from "./PillLabel";
 
-function formatCoordinate(value: number, type: "lat" | "lon") {
-  const abs = Math.abs(value).toFixed(5);
-  return type === "lat" ? `${abs}° ${value >= 0 ? "N" : "S"}`
-                        : `${abs}° ${value >= 0 ? "E" : "W"}`;
-}
+// formatting moved into ControlsOverlay
 
-type ApiResult = {
-  station: string;
-  buoy_latitude: number;
-  buoy_longitude: number;
-  closest_balloon_triplet: {
-    latitude_deg: number;
-    longitude_deg: number;
-    altitude_km: number;
-  };
-  distance_km: number;
-};
+// ApiResult moved to types.ts
 
 // --- Config: buoy center for station 51101
 const BUOY_CENTER: LatLng = [24.359, -162.081];
@@ -50,9 +39,7 @@ export default function App() {
 
   // Build markers for buoy and (when available) closest balloon
   const markers = useMemo<MarkerDef[]>(() => {
-    const list: MarkerDef[] = [
-      { id: "buoy", position: BUOY_CENTER, popup: "NOAA Buoy 51101" },
-    ];
+    const list: MarkerDef[] = [{ id: "buoy", position: BUOY_CENTER, popup: "NOAA Buoy 51101" }];
     if (result) {
       list.push({
         id: "balloon",
@@ -60,75 +47,34 @@ export default function App() {
           result.closest_balloon_triplet.latitude_deg,
           result.closest_balloon_triplet.longitude_deg,
         ],
-        popup: `Balloon`,
+        popup: "Balloon",
       });
     }
-    console.log("Markers:", list);
     return list;
   }, [result]);
 
   return (
     <>
+      <NavBar />
       {/* Fullscreen map */}
       <FullScreenMap
         markers={markers}
         fallbackCenter={BUOY_CENTER}
         fallbackZoom={6}
         fitToMarkersEnabled={!!result}
+        topOffset={NAVBAR_HEIGHT}
       >
       </FullScreenMap>
 
       {/* Controls overlay */}
-      <Box sx={{ position: "fixed", top: 16, left: 16, maxWidth: 420, zIndex: 1000 }}>
-        <Paper elevation={6} sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Closest Balloon to NOAA Buoy 51101
-          </Typography>
-
-          <Typography gutterBottom>Hours Ago (0–23): {hoursAgo}</Typography>
-          <Slider
-            value={hoursAgo}
-            onChange={(_, v) => setHoursAgo(v as number)}
-            step={1}
-            min={0}
-            max={23}
-            valueLabelDisplay="auto"
-            sx={{ mb: 2 }}
-          />
-
-          <Button variant="contained" onClick={fetchClosestToBuoy} fullWidth disabled={loading}>
-            {loading ? "Loading…" : "Find Closest Balloon"}
-          </Button>
-
-          {loading && (
-            <Box sx={{ mt: 2, textAlign: "center" }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
-
-          {result && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2">Buoy</Typography>
-              <Typography>
-                {formatCoordinate(result.buoy_latitude, "lat")},{" "}
-                {formatCoordinate(result.buoy_longitude, "lon")}
-              </Typography>
-
-              <Typography variant="subtitle2" sx={{ mt: 1 }}>
-                Closest Balloon
-              </Typography>
-              <Typography>
-                {formatCoordinate(result.closest_balloon_triplet.latitude_deg, "lat")},{" "}
-                {formatCoordinate(result.closest_balloon_triplet.longitude_deg, "lon")}
-              </Typography>
-              <Typography>Altitude: {result.closest_balloon_triplet.altitude_km} km</Typography>
-              <Typography sx={{ mt: 1 }}>
-                Distance: {result.distance_km.toFixed(2)} km
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Box>
+      <ControlsOverlay
+        hoursAgo={hoursAgo}
+        onHoursAgoChange={setHoursAgo}
+        loading={loading}
+        onFindClick={fetchClosestToBuoy}
+        result={result}
+        offsetTop={NAVBAR_HEIGHT + 16}
+      />
     </>
   );
 }
