@@ -1,5 +1,8 @@
-import { Box, Paper, Typography, Slider, Button, CircularProgress, Tooltip, Divider } from "@mui/material";
+import { Box, Paper, Typography, Slider, Button, CircularProgress, Tooltip, Divider, Chip, IconButton, Stack } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenWithIcon from "@mui/icons-material/OpenWith";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEffect, useRef, useState } from "react";
 import { frost } from "./theme";
 import type { ApiResult } from "./types";
@@ -8,6 +11,12 @@ function formatCoordinate(value: number, type: "lat" | "lon") {
   const abs = Math.abs(value).toFixed(5);
   return type === "lat" ? `${abs}° ${value >= 0 ? "N" : "S"}` : `${abs}° ${value >= 0 ? "E" : "W"}`;
 }
+
+function truncateToTwoDecimals(value: number): number {
+  return Math.trunc(value * 100) / 100;
+}
+
+
 
 export type ControlsOverlayProps = {
   hoursAgo: number;
@@ -24,6 +33,7 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
   const dragStartRef = useRef<{ x: number; y: number; top: number; left: number } | null>(null);
   const hasDraggedRef = useRef(false);
   const [dragging, setDragging] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 600 : false));
 
   // Keep top in sync with offsetTop until user drags
   useEffect(() => {
@@ -95,78 +105,125 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
             </Box>
           </Tooltip>
           <Typography
-            variant="h6"
+            variant="h5"
             sx={{
-              ml: 0.5,
               flex: 1,
+              textAlign: 'center',
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}
           >
-            Closest to Buoy 51101
+            Control Panel
           </Typography>
+          <Tooltip title={collapsed ? "Expand" : "Minimize"}>
+            <IconButton
+              size="small"
+              color="inherit"
+              onClick={(e) => { e.stopPropagation(); setCollapsed(v => !v); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              sx={{ color: 'text.secondary' }}
+              aria-label={collapsed ? 'expand controls' : 'minimize controls'}
+            >
+              {collapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
         </Box>
+        {!collapsed && (
+          <>
+            <Divider sx={{ mb: 1 }} />
 
-        <Divider sx={{ mb: 1 }} />
+            <Typography gutterBottom>Hours Ago (0–23): {hoursAgo}</Typography>
+            <Slider
+              value={hoursAgo}
+              onChange={(_, v) => onHoursAgoChange(v as number)}
+              step={1}
+              min={0}
+              max={23}
+              valueLabelDisplay="auto"
+              sx={{ mb: 2 }}
+            />
 
-        <Typography gutterBottom>Hours Ago (0–23): {hoursAgo}</Typography>
-        <Slider
-          value={hoursAgo}
-          onChange={(_, v) => onHoursAgoChange(v as number)}
-          step={1}
-          min={0}
-          max={23}
-          valueLabelDisplay="auto"
-          sx={{ mb: 2 }}
-        />
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={onFindClick}
+              fullWidth
+              disabled={loading}
+              sx={{
+                fontWeight: 700,
+                color: frost.colors.textPrimary,
+                borderColor: frost.colors.textPrimary,
+                '&:hover': {
+                  borderColor: frost.colors.textPrimary,
+                  backgroundColor: 'rgba(13,110,168,0.08)',
+                },
+              }}
+            >
+              {loading ? "Loading…" : "Find Closest Balloon"}
+            </Button>
 
-        <Button
-          variant="outlined"
-          color="inherit"
-          onClick={onFindClick}
-          fullWidth
-          disabled={loading}
-          sx={{
-            fontWeight: 700,
-            color: frost.colors.textPrimary,
-            borderColor: frost.colors.textPrimary,
-            '&:hover': {
-              borderColor: frost.colors.textPrimary,
-              backgroundColor: 'rgba(13,110,168,0.08)',
-            },
-          }}
-        >
-          {loading ? "Loading…" : "Find Closest Balloon"}
-        </Button>
+            {loading && (
+              <Box sx={{ mt: 2, textAlign: "center" }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
 
-        {loading && (
-          <Box sx={{ mt: 2, textAlign: "center" }}>
-            <CircularProgress size={24} />
-          </Box>
-        )}
-
-        {result && (
-          <Box sx={{ mt: 2 }}>
+            {result && (
+              <Box sx={{ mt: 2 }}>
             {/* Buoy section */}
             <Box sx={{ border: `1px solid ${frost.colors.border}`, borderRadius: 1, p: 1.25, mb: 1.25, background: 'rgba(255,255,255,0.35)' }}>
-              <Typography variant="h5" sx={{ mb: 0.5 }}>Buoy</Typography>
-              <Typography>{formatCoordinate(result.buoy_latitude, "lat")}, {formatCoordinate(result.buoy_longitude, "lon")}</Typography>
+              <Typography variant="h6" sx={{ mb: 0.75 }}>Buoy Coords</Typography>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
+                <Stack direction="row" gap={1} flexWrap="wrap">
+                  <Chip size="small" label={`Lat ${formatCoordinate(result.buoy_latitude, "lat")}`} />
+                  <Chip size="small" label={`Lon ${formatCoordinate(result.buoy_longitude, "lon")}`} />
+                </Stack>
+                <Box>
+                  <Tooltip title="Copy coordinates">
+                    <IconButton
+                      size="small"
+                      onClick={() => navigator.clipboard?.writeText(`${result.buoy_latitude}, ${result.buoy_longitude}`)}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Stack>
             </Box>
 
             {/* Closest Balloon section */}
             <Box sx={{ border: `1px solid ${frost.colors.border}`, borderRadius: 1, p: 1.25, mb: 1.25, background: 'rgba(255,255,255,0.35)' }}>
-              <Typography variant="h5" sx={{ mb: 0.5 }}>Closest Balloon</Typography>
-              <Typography>{formatCoordinate(result.closest_balloon_triplet.latitude_deg, "lat")}, {formatCoordinate(result.closest_balloon_triplet.longitude_deg, "lon")}</Typography>
-              <Typography>Altitude: {result.closest_balloon_triplet.altitude_km} km</Typography>
+              <Typography variant="h6" sx={{ mb: 0.75 }}>Closest Balloon Coords</Typography>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
+                <Stack direction="row" gap={1} flexWrap="wrap">
+                  <Chip size="small" label={`Lat ${formatCoordinate(result.closest_balloon_triplet.latitude_deg, "lat")}`} />
+                  <Chip size="small" label={`Lon ${formatCoordinate(result.closest_balloon_triplet.longitude_deg, "lon")}`} />
+                </Stack>
+                <Box>
+                  <Tooltip title="Copy coordinates">
+                    <IconButton
+                      size="small"
+                      onClick={() => navigator.clipboard?.writeText(`${result.closest_balloon_triplet.latitude_deg}, ${result.closest_balloon_triplet.longitude_deg}`)}
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <ContentCopyIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Stack>
+              <Typography sx={{ mt: 0.75 }}>Altitude: {truncateToTwoDecimals(result.closest_balloon_triplet.altitude_km).toFixed(2)} km</Typography>
             </Box>
 
             {/* Distance section */}
             <Box sx={{ border: `1px solid ${frost.colors.border}`, borderRadius: 1, p: 1.25, background: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h5">Distance</Typography>
+              <Typography variant="h6">Distance</Typography>
               <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>{result.distance_km.toFixed(2)} km</Typography>
             </Box>
-          </Box>
+              </Box>
+            )}
+          </>
         )}
       </Paper>
     </Box>
