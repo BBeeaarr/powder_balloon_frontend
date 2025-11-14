@@ -184,7 +184,7 @@ export default function ControlsOverlay({
 							</Box>
 						)}
 
-						{result && (
+						{/* {result && (
 							<Box sx={{ mt: 2 }}>
 								<Typography variant="subtitle2">Buoy</Typography>
 								<Typography>
@@ -197,7 +197,7 @@ export default function ControlsOverlay({
 								<Typography>Altitude: {Math.trunc(result.closest_balloon_triplet.altitude_km * 100) / 100} km</Typography>
 								<Typography sx={{ mt: 1 }}>Distance: {result.distance_km.toFixed(2)} km</Typography>
 							</Box>
-						)}
+						)} */}
 					</>
 				)}
 			</Paper>
