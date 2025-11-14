@@ -76,3 +76,13 @@ button:focus-visible {
   border-radius: 50%;
   border: 2px solid #fff;
 }
+
+.map-marker.marker-balloon {
+  background-color: #e53935; /* red */
+  box-shadow: 0 0 0 2px rgba(229,57,53,0.25);
+}
+
+.map-marker.marker-buoy {
+  background-color: #1976d2; /* blue */
+  box-shadow: 0 0 0 2px rgba(25,118,210,0.2);
+}

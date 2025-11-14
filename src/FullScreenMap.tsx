@@ -153,8 +153,10 @@ export default function FullScreenMap({
     // add new markers (styling via CSS class)
     markers.forEach(m => {
       const el = document.createElement("div");
-      el.className = "map-marker";
-      const marker = new maplibregl.Marker(el).setLngLat([m.position[1], m.position[0]]).addTo(map);
+      const isBalloon = m.id.startsWith("balloon");
+      const isBuoy = m.id === "buoy";
+      el.className = `map-marker${isBalloon ? " marker-balloon" : isBuoy ? " marker-buoy" : ""}`;
+      const marker = new maplibregl.Marker({ element: el }).setLngLat([m.position[1], m.position[0]]).addTo(map);
       markerObjsRef.current.push(marker);
     });
   }, [markers]);

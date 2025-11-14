@@ -26,6 +26,10 @@ export type ApiResult = {
     latitude_deg: number;
     longitude_deg: number;
     altitude_km: number;
+    // Some backends may include the source index for this balloon
+    index?: number;
   };
   distance_km: number;
+  // Optional index reference for the chosen balloon in the server dataset
+  balloon_index?: number;
 };
