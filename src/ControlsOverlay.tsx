@@ -4,7 +4,7 @@ import OpenWithIcon from "@mui/icons-material/OpenWith";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEffect, useRef, useState } from "react";
-import { frost } from "./theme";
+import { frost, NAVBAR_HEIGHT } from "./theme";
 import type { ApiResult } from "./types";
 
 function formatCoordinate(value: number, type: "lat" | "lon") {
@@ -34,6 +34,20 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
   const hasDraggedRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [collapsed, setCollapsed] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 600 : false));
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 600px)').matches : false));
+
+  // Watch viewport width to toggle mobile/desktop behavior
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 600px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      const matches = 'matches' in e ? e.matches : (e as MediaQueryList).matches;
+      setIsMobile(matches);
+    };
+    // Initial update and listener
+    handler(mq);
+    mq.addEventListener('change', handler as any);
+    return () => mq.removeEventListener('change', handler as any);
+  }, []);
 
   // Keep top in sync with offsetTop until user drags
   useEffect(() => {
@@ -52,8 +66,11 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
       const h = node?.offsetHeight ?? 0;
       const maxLeft = Math.max(0, window.innerWidth - w);
       const maxTop = Math.max(0, window.innerHeight - h);
+      // Prevent dragging the overlay into the navbar area
+      const minTopBoundary = Math.max(NAVBAR_HEIGHT + 8, offsetTop ?? 0);
+      const safeMinTop = Math.min(minTopBoundary, maxTop);
       const nextLeft = Math.min(maxLeft, Math.max(0, left + dx));
-      const nextTop = Math.min(maxTop, Math.max(0, top + dy));
+      const nextTop = Math.min(maxTop, Math.max(safeMinTop, top + dy));
       setPos({ left: nextLeft, top: nextTop });
     };
     const onUp = () => {
@@ -76,18 +93,40 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
   }, [dragging]);
 
   const startDrag = (e: React.PointerEvent) => {
+    if (isMobile) return; // disable free-dragging on mobile for better UX
     hasDraggedRef.current = true;
     setDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY, top: pos.top, left: pos.left };
   };
 
   return (
-    <Box ref={overlayRef} sx={{ position: "fixed", top: pos.top, left: pos.left, maxWidth: 420, zIndex: 1000 }}>
+    <Box
+      ref={overlayRef}
+      sx={
+        isMobile
+          ? {
+              position: 'fixed',
+              left: 8,
+              right: 8,
+              bottom: `max(8px, env(safe-area-inset-bottom))`,
+              top: 'auto',
+              maxWidth: 'none',
+              zIndex: 1000,
+            }
+          : {
+              position: 'fixed',
+              top: pos.top,
+              left: pos.left,
+              maxWidth: 420,
+              zIndex: 1000,
+            }
+      }
+    >
       <Paper elevation={6} sx={{ p: 2, pt: 1, ...frost.paper }}>
         <Box
           onPointerDown={startDrag}
           sx={{
-            cursor: "move",
+            cursor: isMobile ? 'default' : 'move',
             userSelect: dragging ? "none" : "auto",
             mb: 1,
             px: 1,
@@ -99,11 +138,16 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
             minWidth: 0,
           }}
         >
-          <Tooltip title="Drag to move" placement="top" enterDelay={300}>
-            <Box sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
-              <OpenWithIcon fontSize="small" />
-            </Box>
-          </Tooltip>
+          {isMobile ? (
+            // Left spacer on mobile to keep the title truly centered (mirrors the right toggle button)
+            <Box sx={{ width: 32, flexShrink: 0 }} />
+          ) : (
+            <Tooltip title="Drag to move" placement="top" enterDelay={300}>
+              <Box sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
+                <OpenWithIcon fontSize="small" />
+              </Box>
+            </Tooltip>
+          )}
           <Typography
             variant="h5"
             sx={{
@@ -125,7 +169,7 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
               sx={{ color: 'text.secondary' }}
               aria-label={collapsed ? 'expand controls' : 'minimize controls'}
             >
-              {collapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
+              {collapsed ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
         </Box>
@@ -173,7 +217,7 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
               <Box sx={{ mt: 2 }}>
             {/* Buoy section */}
             <Box sx={{ border: `1px solid ${frost.colors.border}`, borderRadius: 1, p: 1.25, mb: 1.25, background: 'rgba(255,255,255,0.35)' }}>
-              <Typography variant="h6" sx={{ mb: 0.75 }}>Buoy Coords</Typography>
+              <Typography variant="h6" sx={{ mb: 0.75 }}>Powder Buoy Coords</Typography>
               <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
                 <Stack direction="row" gap={1} flexWrap="wrap">
                   <Chip size="small" label={`Lat ${formatCoordinate(result.buoy_latitude, "lat")}`} />

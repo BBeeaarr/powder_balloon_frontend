@@ -5,6 +5,7 @@ import FullScreenMap from "./FullScreenMap";
 import type { LatLng, MarkerDef, ApiResult } from "./types.ts";
 import ControlsOverlay from "./ControlsOverlay";
 import NavBar from "./NavBar";
+import FirstVisitDialog from "./FirstVisitDialog";
 import { NAVBAR_HEIGHT } from "./theme";
 // import { MarkerItem } from "./MarkersLayer";
 // import PillLabel from "./PillLabel";
@@ -56,6 +57,7 @@ export default function App() {
   return (
     <>
       <NavBar />
+      <FirstVisitDialog />
       {/* Fullscreen map */}
       <FullScreenMap
         markers={markers}
