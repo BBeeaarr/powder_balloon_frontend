@@ -22,7 +22,7 @@ function defaultImergTimestamp(): string {
   return day.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-// Build WMS (EPSG:4326) request using bbox placeholder understood by MapLibre
+// Build WMS (EPSG:3857) request using bbox placeholder understood by MapLibre
 function buildWmsUrl({
   layer,
   time,
@@ -36,7 +36,7 @@ function buildWmsUrl({
   format?: "image/png" | "image/jpeg";
   transparent?: boolean;
 }) {
-    const base = "https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi";
+  const base = "https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi";
   const params = new URLSearchParams({
     SERVICE: "WMS",
     REQUEST: "GetMap",
@@ -121,6 +121,8 @@ export default function FullScreenMap({
         }
         if (!map.getLayer(gibsLayerId)) {
           map.addLayer({ id: gibsLayerId, type: "raster", source: gibsSourceId, paint: { "raster-opacity": gibsOptions.opacity ?? 0.8 } });
+          // Reduce fade duration for faster visual updates
+          map.setPaintProperty(gibsLayerId, "raster-fade-duration", 0);
         }
       }
     };
@@ -178,6 +180,7 @@ export default function FullScreenMap({
         if (map.getSource(gibsSourceId)) map.removeSource(gibsSourceId);
         map.addSource(gibsSourceId, { type: "raster", tiles, tileSize: gibsOptions.tileSize || 256, minzoom: 0 } as any);
         map.addLayer({ id: gibsLayerId, type: "raster", source: gibsSourceId, paint: { "raster-opacity": gibsOptions.opacity ?? 0.8 } });
+        map.setPaintProperty(gibsLayerId, "raster-fade-duration", 0);
       }
     }
   }, [gibsOptions.layer, gibsOptions.time, gibsOptions.tileSize, gibsOptions.opacity]);

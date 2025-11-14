@@ -1,9 +1,11 @@
-import { Box, Paper, Typography, Slider, Button, CircularProgress, Tooltip, Divider, Chip, IconButton, Stack } from "@mui/material";
+import { Box, Paper, Typography, Slider, Button, CircularProgress, Tooltip, Divider, Chip, IconButton, Stack, Checkbox, FormControlLabel } from "@mui/material";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PauseIcon from "@mui/icons-material/Pause";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenWithIcon from "@mui/icons-material/OpenWith";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { frost, NAVBAR_HEIGHT } from "./theme";
 import type { ApiResult } from "./types";
 
@@ -25,9 +27,13 @@ export type ControlsOverlayProps = {
   onFindClick: () => void;
   result: ApiResult | null;
   offsetTop?: number; // pixels to push overlay below navbar
+  fitOnFind: boolean;
+  onFitOnFindChange: (value: boolean) => void;
+  isAnimating: boolean;
+  onToggleAnimating: () => void;
 };
 
-export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, onFindClick, result, offsetTop = 16 }: ControlsOverlayProps) {
+export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, onFindClick, result, offsetTop = 16, fitOnFind, onFitOnFindChange, isAnimating, onToggleAnimating }: ControlsOverlayProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState(() => ({ top: offsetTop, left: 16 }));
   const dragStartRef = useRef<{ x: number; y: number; top: number; left: number } | null>(null);
@@ -35,6 +41,11 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
   const [dragging, setDragging] = useState(false);
   const [collapsed, setCollapsed] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 600 : false));
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 600px)').matches : false));
+
+  const sliderMarks = useMemo(
+    () => Array.from({ length: 24 }, (_, i) => ({ value: i, label: i === 0 ? '23' : i === 23 ? '0' : '' })),
+    []
+  );
 
   // Watch viewport width to toggle mobile/desktop behavior
   useEffect(() => {
@@ -177,15 +188,33 @@ export default function ControlsOverlay({ hoursAgo, onHoursAgoChange, loading, o
           <>
             <Divider sx={{ mb: 1 }} />
 
-            <Typography gutterBottom>Hours Ago (0–23): {hoursAgo}</Typography>
+            <Typography gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Hours Ago (23…0): {hoursAgo}</span>
+              <IconButton size="small" onClick={onToggleAnimating} sx={{ ml: 1 }} aria-label={isAnimating ? 'Pause animation' : 'Play animation'}>
+                {isAnimating ? <PauseIcon /> : <PlayArrowIcon />}
+              </IconButton>
+            </Typography>
             <Slider
-              value={hoursAgo}
-              onChange={(_, v) => onHoursAgoChange(v as number)}
+              value={23 - hoursAgo}
+              onChange={(_, v) => {
+                // Pause animation when user scrubs manually and snap to that hour
+                if (isAnimating) onToggleAnimating();
+                const sliderVal = v as number; // 0 (−23) ... 23 (0)
+                onHoursAgoChange(23 - sliderVal);
+              }}
               step={1}
               min={0}
               max={23}
               valueLabelDisplay="auto"
+              valueLabelFormat={(v) => `${23 - (v as number)}`}
+              marks={sliderMarks}
               sx={{ mb: 2 }}
+            />
+
+            <FormControlLabel
+              control={<Checkbox checked={fitOnFind} onChange={(_, checked) => onFitOnFindChange(checked)} />}
+              label="Fit map to markers when finding"
+              sx={{ mb: 1 }}
             />
 
             <Button
